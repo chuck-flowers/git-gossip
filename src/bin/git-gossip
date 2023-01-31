@@ -49,7 +49,7 @@ main() {
 			done;
 			;;
 		'smudge')
-			# TODO
+			cat /dev/stdin
 			;;
 	esac
 }
