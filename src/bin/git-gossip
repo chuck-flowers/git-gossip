@@ -1,0 +1,58 @@
+#!/usr/bin/bash
+
+main() {
+	local verb="$1"
+
+	local gitRepo gossipConfig
+
+	gitRepo="$(git rev-parse --show-toplevel)"
+	gossipConfig="$gitRepo/.gitgossip"
+
+	case "$verb" in
+		'init')
+			# If the file already exists, don't initialize
+			if [[ ! -f "$gossipConfig" ]]; then
+				touch "$gossipConfig"
+				printf '.env text eol=lf filter=gossip\n' >> "$gitRepo/.gitattributes"
+			fi
+
+			git config filter.gossip.clean 'git gossip clean'
+			git config filter.gossip.smudge 'git gossip smudge'
+			;;
+		'add')
+			local variable="$2"
+			if grep -E "^$variable=" "$gossipConfig"; then
+				printf 'The variable "%s" is already configured\n' "$variable" > /dev/stderr
+				exit 1
+			else
+				echo "$variable" >> "$gossipConfig"
+			fi
+			;;
+		'clean')
+			while read -r line; do
+				local lineCleaned=0
+
+				# Check the line against each configuration
+				while read -r configLine; do
+					local regex="$configLine="
+					if [[ "$line" =~ $regex ]]; then
+						echo "$configLine="
+						lineCleaned=1
+						break
+					fi
+				done < "$gossipConfig";
+
+				# The line did not match the config
+				if [[ "$lineCleaned" -eq 0 ]]; then
+					echo "$line";
+				fi
+			done;
+			;;
+		'smudge')
+			# TODO
+			;;
+	esac
+}
+
+main "$@"
+
