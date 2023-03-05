@@ -28,11 +28,13 @@ DST_BIN_DIR=$(DST_DIR)/bin
 executables: $(DST_BIN_DIR)/$(BIN_NAME)
 $(DST_BIN_DIR)/$(BIN_NAME): $(SRC_BIN_DIR)/$(BIN_NAME)
 	$(SHELLCHECK) $(SHELLCHECK_FLAGS) $^
-	install -D $^ $@
+	mkdir -p $(dir $@)
+	install $^ $@
 
 .PHONY: install-executables uninstall-executables
 install-executables:
-	install -Dm555 $(DST_BIN_DIR)/$(BIN_NAME) -t $(PREFIX)/bin
+	mkdir -p $(PREFIX)/bin
+	install -m555 $(DST_BIN_DIR)/$(BIN_NAME) -t $(PREFIX)/bin
 uninstall-executables:
 	rm -f $(PREFIX)/bin/$(BIN_NAME)
 
@@ -50,7 +52,8 @@ $(DST_MAN_DIR)/%.gz: $(SRC_MAN_DIR)/%.md
 
 .PHONY: install-man-pages uninstall-man-pages
 install-man-pages:
-	install -Dm444 $(wildcard $(DST_MAN_DIR)/*.1.gz) -t $(PREFIX)/share/man/man1
+	mkdir -p $(PREFIX)/share/man/man1
+	install -m444 $(wildcard $(DST_MAN_DIR)/*.1.gz) -t $(PREFIX)/share/man/man1
 uninstall-man-pages:
 	rm -f $(patsubst $(DST_MAN_DIR)/%, $(PREFIX)/share/man/man1/%, $(filter %.1.gz, $(wildcard $(MAN_DST_FILES))))
 
