@@ -11,6 +11,7 @@ installed:
 
 * make
 * pandoc
+* shellcheck
 
 Once the build dependencies are installed, run the following command to build
 and install the application to `/usr/local`. 
