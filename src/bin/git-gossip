@@ -34,12 +34,27 @@ main() {
 			while read -r line; do
 				local lineCleaned=0
 
+				# If the line is a comment or empty line, simply emit it and continue
+				if echo "$line" | grep -E '(^#)|(^\s*$)'; then
+					continue
+				fi
+
+				# Decompose the line into key and value
+				local varKey varVal
+				varKey="$(echo "$line" | cut -d= -f1)"
+				varVal="$(echo "$line" | cut -d= -f2-)"
+
 				# Check the line against each configuration
 				while read -r configLine; do
-					local regex="$configLine="
-					if [[ "$line" =~ $regex ]]; then
-						echo "$configLine="
+					if [[ "$varKey" == "$configLine" ]]; then
+
+						# Save the current value to the config
+						git config "gossip.variables.$(echo "$varKey" | rawKeyToConfigKey)" "$varVal"
+
+						# Output the "cleaned" line
+						echo "${varKey}="
 						lineCleaned=1
+
 						break
 					fi
 				done < "$gossipConfig";
@@ -51,9 +66,45 @@ main() {
 			done;
 			;;
 		'smudge')
-			cat /dev/stdin
+			while read -r line; do
+				lineSmudged=0
+
+				# If the line is a comment or empty line, simply emit it and continue
+				if echo "$line" | grep -E '(^#)|(^\s*$)'; then
+					continue
+				fi
+
+				# Decompose the line
+				local varKey varVal
+				varKey="$(echo "$line" | cut -d= -f1)"
+				varVal="$(echo "$line" | cut -d= -f2-)"
+
+				# See if the variable is referenced in the config file
+				while read -r configLine; do
+					# If the variable is tracked by git gossip, use the "working" value
+					if [[ "$varKey" == "$configLine" ]]; then
+						local gitConfigKey workingVal
+						gitConfigKey=$(echo "$varKey" | rawKeyToConfigKey)
+						workingVal=$(git config "gossip.variables.$gitConfigKey")
+
+						# Get the current working value
+						echo "$varKey=$workingVal"
+						lineSmudged=1
+						break
+					fi
+				done < "$gossipConfig"
+
+				# If the line is not tracked by git gossip, emit it as is
+				if [[ $lineSmudged -eq 0 ]]; then
+					echo "$line"
+				fi
+			done
 			;;
 	esac
+}
+
+rawKeyToConfigKey() {
+	sed -E 's/[^A-Za-z-]+/-/g'
 }
 
 main "$@"
