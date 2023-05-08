@@ -13,11 +13,14 @@ main() {
 			# If the file already exists, don't initialize
 			if [[ ! -f "$gossipConfig" ]]; then
 				touch "$gossipConfig"
-				printf '.env text eol=lf filter=gossip\n' >> "$gitRepo/.gitattributes"
+				echo '.env text eol=lf filter=gossip-env' >> "$gitRepo/.gitattributes"
+				echo "*.json text filter=gossip-json" >> "$gitRepo/.gitattributes"
 			fi
 
-			git config filter.gossip.clean 'git gossip clean'
-			git config filter.gossip.smudge 'git gossip smudge'
+			git config filter.gossip-env.clean 'git gossip clean env'
+			git config filter.gossip-env.smudge 'git gossip smudge env'
+			git config filter.gossip-json.clean 'git gossip clean json'
+			git config filter.gossip-json.smudge 'git gossip smudge json'
 			;;
 		'add')
 			shift;
