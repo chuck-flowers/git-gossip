@@ -2,6 +2,7 @@
 
 main() {
 	local verb="$1"
+	shift
 
 	local gitRepo gossipConfig
 
@@ -17,6 +18,7 @@ main() {
 				echo "*.json text filter=gossip-json" >> "$gitRepo/.gitattributes"
 			fi
 
+			# Update the filters in the git configuration
 			git config filter.gossip-env.clean 'git gossip clean env'
 			git config filter.gossip-env.smudge 'git gossip smudge env'
 			git config filter.gossip-json.clean 'git gossip clean json'
@@ -34,76 +36,132 @@ main() {
 			done
 			;;
 		'clean')
-			while read -r line; do
-				local lineCleaned=0
+			local type="$1"
+			shift
 
-				# If the line is a comment or empty line, simply emit it and continue
-				if echo "$line" | grep -E '(^#)|(^\s*$)'; then
-					continue
-				fi
-
-				# Decompose the line into key and value
-				local varKey varVal
-				varKey="$(echo "$line" | cut -d= -f1)"
-				varVal="$(echo "$line" | cut -d= -f2-)"
-
-				# Check the line against each configuration
-				while read -r configLine; do
-					if [[ "$varKey" == "$configLine" ]]; then
-
-						# Save the current value to the config
-						git config "gossip.variables.$(echo "$varKey" | rawKeyToConfigKey)" "$varVal"
-
-						# Output the "cleaned" line
-						echo "${varKey}="
-						lineCleaned=1
-
-						break
-					fi
-				done < "$gossipConfig";
-
-				# The line did not match the config
-				if [[ "$lineCleaned" -eq 0 ]]; then
-					echo "$line";
-				fi
-			done;
+			case "$type" in
+				'env')
+					cleanEnvFile
+					;;
+				'json')
+					cleanJsonFile
+					;;
+				*)
+					echo "Invalid file type: '$type'" > /dev/stderr
+			esac
 			;;
 		'smudge')
-			while read -r line; do
-				lineSmudged=0
+			local type="$1"
+			shift
 
-				# If the line is a comment or empty line, simply emit it and continue
-				if echo "$line" | grep -E '(^#)|(^\s*$)'; then
-					continue
-				fi
-
-				# Decompose the line
-				local varKey varVal
-				varKey="$(echo "$line" | cut -d= -f1)"
-				varVal="$(echo "$line" | cut -d= -f2-)"
-
-				# See if the variable is referenced in the config file
-				while read -r configLine; do
-					# If the variable is tracked by git gossip, use the "working" value
-					if [[ "$varKey" == "$configLine" ]]; then
-						local gitConfigKey workingVal
-						gitConfigKey=$(echo "$varKey" | rawKeyToConfigKey)
-						workingVal=$(git config "gossip.variables.$gitConfigKey")
-
-						# Get the current working value
-						echo "$varKey=$workingVal"
-						lineSmudged=1
-						break
-					fi
-				done < "$gossipConfig"
-
-				# If the line is not tracked by git gossip, emit it as is
-				if [[ $lineSmudged -eq 0 ]]; then
-					echo "$line"
-				fi
-			done
+			case "$type" in
+				'env')
+					smudgeEnvFile
+					;;
+				'json')
+					smudgeJsonFile
+					;;
+			esac
 			;;
 	esac
+}
+
+cleanEnvFile() {
+	while read -r line; do
+		local lineCleaned=0
+
+		# If the line is a comment or empty line, simply emit it and continue
+		if echo "$line" | grep -E '(^#)|(^\s*$)'; then
+			continue
+		fi
+
+		# Decompose the line into key and value
+		local varKey varVal
+		varKey="$(echo "$line" | cut -d= -f1)"
+		varVal="$(echo "$line" | cut -d= -f2-)"
+
+		# Check the line against each configuration
+		while read -r configLine; do
+			if [[ "$varKey" == "$configLine" ]]; then
+
+				# Save the current value to the config
+				git config "gossip.variables.$(echo "$varKey" | rawKeyToConfigKey)" "$varVal"
+
+				# Output the "cleaned" line
+				echo "${varKey}="
+				lineCleaned=1
+
+				break
+			fi
+		done < "$gossipConfig";
+
+		# The line did not match the config
+		if [[ "$lineCleaned" -eq 0 ]]; then
+			echo "$line";
+		fi
+	done
+}
+
+cleanJsonFile() {
+	# Build the jq command
+	local query=''
+	while read -r line; do
+		# Only eval lines starting with '.'
+		if ! grep -E '^\.' <<< "$line"; then
+			continue
+		fi
+
+		local queryComponent="setpath(path($line); \"\")"
+		echo "Built component: $queryComponent" > /dev/stderr
+		if [[ "$query" == '' ]]; then
+			query="$queryComponent"
+		else
+			query="$query | $queryComponent"
+		fi
+	done < "$gossipConfig"
+
+	echo "Running query: '$query'"
+	jq "$query"
+}
+
+smudgeEnvFile() {
+	while read -r line; do
+		lineSmudged=0
+
+		# If the line is a comment or empty line, simply emit it and continue
+		if echo "$line" | grep -E '(^#)|(^\s*$)'; then
+			continue
+		fi
+
+		# Decompose the line
+		local varKey varVal
+		varKey="$(echo "$line" | cut -d= -f1)"
+		varVal="$(echo "$line" | cut -d= -f2-)"
+
+		# See if the variable is referenced in the config file
+		while read -r configLine; do
+			# If the variable is tracked by git gossip, use the "working" value
+			if [[ "$varKey" == "$configLine" ]]; then
+				local gitConfigKey workingVal
+				gitConfigKey=$(echo "$varKey" | rawKeyToConfigKey)
+				workingVal=$(git config "gossip.variables.$gitConfigKey")
+
+				# Get the current working value
+				echo "$varKey=$workingVal"
+				lineSmudged=1
+				break
+			fi
+		done < "$gossipConfig"
+
+		# If the line is not tracked by git gossip, emit it as is
+		if [[ $lineSmudged -eq 0 ]]; then
+			echo "$line"
+		fi
+	done
+}
+
+smudgeJsonFile() {
+	true
 }
 
 rawKeyToConfigKey() {
