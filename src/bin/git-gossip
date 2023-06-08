@@ -107,7 +107,7 @@ cleanJsonFile() {
 	local query=''
 	while read -r line; do
 		# Only eval lines starting with '.'
-		if ! grep -E '^\.' <<< "$line"; then
+		if ! grep -E '^\.' <<< "$line" > /dev/null; then
 			continue
 		fi
 
