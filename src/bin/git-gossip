@@ -120,7 +120,7 @@ cleanJsonFile() {
 		fi
 	done < "$gossipConfig"
 
-	echo "Running query: '$query'"
+	echo "Running query: '$query'" > /dev/stderr
 	jq "$query"
 }
 
