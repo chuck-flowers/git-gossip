@@ -112,7 +112,6 @@ cleanJsonFile() {
 		fi
 
 		local queryComponent="if getpath(path($line)) != null then setpath(path($line); \"\") else . end"
-		echo "Built component: $queryComponent" > /dev/stderr
 		if [[ "$query" == '' ]]; then
 			query="$queryComponent"
 		else
@@ -120,7 +119,6 @@ cleanJsonFile() {
 		fi
 	done < "$gossipConfig"
 
-	echo "Running query: '$query'" > /dev/stderr
 	jq "$query"
 }
 
