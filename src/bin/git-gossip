@@ -27,7 +27,6 @@ main() {
 			git config filter.gossip-json.smudge 'git gossip smudge json'
 			;;
 		'add')
-			shift;
 			for variable in "$@"; do
 				if grep -E "^$variable=" "$gossipConfig"; then
 					printf 'The variable "%s" is already configured\n' "$variable" > /dev/stderr
