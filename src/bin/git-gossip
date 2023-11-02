@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 main() {
+	debug "main $*"
+
 	local verb="$1"
 	shift
 
@@ -36,33 +38,28 @@ main() {
 			done
 			;;
 		'clean')
-			local type="$1"
-			shift
-
-			case "$type" in
-				'env')
-					cleanEnvFile
-					;;
-				'json')
-					cleanJsonFile
-					;;
-				*)
-					echo "Invalid file type: '$type'" > /dev/stderr
-			esac
+			clean "$@"
 			;;
 		'smudge')
-			local type="$1"
-			shift
-
-			case "$type" in
-				'env')
-					smudgeEnvFile
-					;;
-				'json')
-					smudgeJsonFile
-					;;
-			esac
+			smudge "$@"
 			;;
+	esac
+}
+
+clean() {
+	debug "clean $*"
+	local type="$1"
+	shift
+
+	case "$type" in
+		'env')
+			cleanEnvFile
+			;;
+		'json')
+			cleanJsonFile
+			;;
+		*)
+			echo "Invalid file type: '$type'" > /dev/stderr
 	esac
 }
 
@@ -122,6 +119,21 @@ cleanJsonFile() {
 	jq "$query"
 }
 
+smudge() {
+	debug "smudge $*"
+	local type="$1"
+	shift
+
+	case "$type" in
+		'env')
+			smudgeEnvFile
+			;;
+		'json')
+			smudgeJsonFile
+			;;
+	esac
+}
+
 smudgeEnvFile() {
 	while read -r line; do
 		lineSmudged=0
@@ -164,6 +176,10 @@ smudgeJsonFile() {
 
 rawKeyToConfigKey() {
 	sed -E 's/[^A-Za-z-]+/-/g'
+}
+
+debug() {
+	test -n "$GIT_GOSSIP_DEBUG" && echo >&2 "$@"
 }
 
 main "$@"
