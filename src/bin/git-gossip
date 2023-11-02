@@ -110,7 +110,7 @@ cleanJsonFile() {
 			continue
 		fi
 
-		local queryComponent="if getpath(path($line)) != null then setpath(path($line); \"\") else . end"
+		local queryComponent="if getpath(path($line)) != null then setpath(path($line); null) else . end"
 		if [[ "$query" == '' ]]; then
 			query="$queryComponent"
 		else
