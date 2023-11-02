@@ -60,7 +60,8 @@ clean() {
 			cleanJsonFile
 			;;
 		*)
-			echo "Invalid file type: '$type'" > /dev/stderr
+			error "Invalid file type: '$type'"
+			;;
 	esac
 }
 
@@ -131,6 +132,9 @@ smudge() {
 			;;
 		'json')
 			smudgeJsonFile
+			;;
+		*)
+			error "Invalid file type: '$type'"
 			;;
 	esac
 }
