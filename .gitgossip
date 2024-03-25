@@ -1,3 +1,5 @@
-PASSWORD
-.credentials.password
+[.env]
+	PASSWORD=TODO
+[example.json]
+	.credentials.password=TODO
 
