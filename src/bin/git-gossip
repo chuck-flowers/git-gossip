@@ -16,7 +16,7 @@ main() {
 			# If the file already exists, don't initialize
 			if [[ ! -f "$gossipConfig" ]]; then
 				touch "$gossipConfig"
-				echo '.env text eol=lf filter=gossip-env' >> "$gitRepo/.gitattributes"
+				echo '.env* text eol=lf filter=gossip-env' >> "$gitRepo/.gitattributes"
 				echo "*.json text filter=gossip-json" >> "$gitRepo/.gitattributes"
 			fi
 
