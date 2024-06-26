@@ -66,7 +66,7 @@ clean() {
 }
 
 cleanEnvFile() {
-	while read -r line; do
+	while read -r line || [[ $line ]]; do
 		local lineCleaned=0
 
 		# If the line is a comment or empty line, simply emit it and continue
@@ -80,7 +80,7 @@ cleanEnvFile() {
 		varVal="$(echo "$line" | cut -d= -f2-)"
 
 		# Check the line against each configuration
-		while read -r configLine; do
+		while read -r configLine || [[ $configLine ]]; do
 			if [[ "$varKey" == "$configLine" ]]; then
 
 				# Save the current value to the config
@@ -104,7 +104,7 @@ cleanEnvFile() {
 cleanJsonFile() {
 	# Build the jq command
 	local query=''
-	while read -r line; do
+	while read -r line || [[ $line ]]; do
 		# Only eval lines starting with '.'
 		if ! grep -E '^\.' <<< "$line" > /dev/null; then
 			continue
@@ -140,7 +140,7 @@ smudge() {
 }
 
 smudgeEnvFile() {
-	while read -r line; do
+	while read -r line || [[ $line ]]; do
 		lineSmudged=0
 
 		# If the line is a comment or empty line, simply emit it and continue
@@ -154,7 +154,7 @@ smudgeEnvFile() {
 		varVal="$(echo "$line" | cut -d= -f2-)"
 
 		# See if the variable is referenced in the config file
-		while read -r configLine; do
+		while read -r configLine || [[ $configLine ]]; do
 			# If the variable is tracked by git gossip, use the "working" value
 			if [[ "$varKey" == "$configLine" ]]; then
 				local gitConfigKey workingVal
